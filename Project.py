@@ -41,4 +41,4 @@ ENTRY_FEE = 50
 START_SKILL = 20
 WIN_THRESHOLD = ??????? # random(1..100) + skill >= ??????  <------# to still set in common according
 
-#I started to create the python file. RODRI in case make every necessary change
+#I started to create the python file. RODRI in case make every necessary change ...
