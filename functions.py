@@ -1,19 +1,59 @@
-
 # get airports for each tournament (large_airports that match the country/city)
 # play_tournament(skill_points, tc_id)
 
 # Queries de Database using the db connection and the SQL query as parameters
-def run_query(conn, query):
+def run_query(conn, query, params=None):
     cursor = conn.cursor()
-    cursor.execute(query)
+    cursor.execute(query, params)
     result = cursor.fetchall()
     cursor.close()
     return result
 
-# print(run_query(connection, "SELECT * FROM tournaments WHERE name LIKE '%tralia%'"))
+def get_player_data(test_vals=None):
+    data = test_vals or {
+    'user_name': input("Enter your name:"),
+    'nation': input("Enter your Nation"),
+    'age': int(input("Enter your age"))
+    }
+    return data
 
-# Intro of the game
+def format_tournament(tournament_list):
+    # Maps sql tournament data into dict variable
+    return {
+        "id":           tournament_list[0],
+        "week":         tournament_list[1],
+        "month":        tournament_list[2],
+        "day":          tournament_list[3],
+        "points":       tournament_list[4],
+        "name":         tournament_list[5],
+        "surface":      tournament_list[6],
+        "city":         tournament_list[7],
+        "iso_country":  tournament_list[8],
+        "continent":    tournament_list[9],
+        "prize_money":  tournament_list[10],
+        "country":      tournament_list[11]
+    }
+
+def get_tournaments_of_the_month(conn,month):
+    # Get tournament of the month
+    sql = f"""select tournaments.*, country.name 
+                     from tournaments
+                     inner join country on tournaments.iso_country = country.iso_country where tournaments.month = %s;"""
+    raw_list = run_query(conn, sql, (month,))
+    clean_list = []
+    if raw_list:
+        for t in raw_list:
+            t_dict = format_tournament(t)
+            clean_list.append(t_dict)
+    return clean_list
+
+def show_tournaments(t_list):
+    # Display the list of tournaments
+    for index, t in enumerate(t_list, start=1):
+        print(f"{index}. {t['name']} ({t['iso_country']})")
+
 def print_game_intro(user_name, nation, age, heritage):
+    # Intro of the game
     print("---------TENNIS PRO 2026---------")
     print("Complete a full tennis season and finish  ranked number one in the world ranking")
 
