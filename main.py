@@ -1,11 +1,12 @@
 # 1. import
 import sys
 import functions as f
-import mysql.connector
 import config
+import mysql.connector
 
 
 # 2. connection
+
 connection = mysql.connector.connect(
     host = config.HOST,
     port = config.PORT,
@@ -14,28 +15,30 @@ connection = mysql.connector.connect(
     password = config.PASS,
     autocommit = True
 )
+
 # 3. functions
 
 # 4. variables
-
-# player features
-# user_name = input("Enter yourname:")
-# nation = input("Enter your Nation")
-# age = int(input("Enter your age"))
-# to save time
-user_name = 'Rodri'
-nation = 'Argentina'
-age = 20
+# Starting variables
 heritage = 30000  # to be defined
-
-# game state variables
-pl_money = heritage
 skill_points = 20
+# Player Features
+
+# Simulate a test player to save time for tests
+test_player = {'user_name': 'Rodri','nation': 'Argentina','age': 20}
+
+# Create player
+player = f.get_player_data(test_player)
+
+# Game State variables
+player['money'] = heritage
+player['money'] = heritage
+player['skill_points'] = skill_points
 
 # game conditions
-tournament_fee_rate = 0.02  # tournament_fee is calculated as t_prize_money * tournament_fee_rate
-travel_fee = 5000
-win_threshold = 0.7
+TOURNAMENT_FEE_RATE = 0.02  # tournament_fee is calculated as t_prize_money * TOURNAMENT_FEE_RATE
+TRAVEL_FEE = 5000   # it is going to be a fix value until further change
+WIN_THRESHOLD = 0.7 # it is going to be a fix value until further change
 
 # context variables
 MONTHS = ("January","February","March","April","May","June","July","August","September","October","November","December")
@@ -43,57 +46,65 @@ MONTHS = ("January","February","March","April","May","June","July","August","Sep
 # 5. game
 
 # Introduction to the game
-# player features have been requested in variables section
 
-f.print_game_intro(user_name, nation, age, heritage)
+# player features have been requested in get_player_data() section
+f.print_game_intro(player['user_name'], player['nation'], player['age'], heritage)
 
 # Game starts...
 print(f'\n{MONTHS[-1]} is starting. The following tournaments are coming up, choose one of them:')
 
-# Get tournament of the month
-t_list = f.run_query(connection,
-        f"""select tournaments.*, country.name 
-                     from tournaments
-                     inner join country on tournaments.iso_country = country.iso_country
-                     where tournaments.month = '{MONTHS[-1]}';
-                    """)
+# TOURNAMENT SELECTION SECTION - it is a loop that breaks when the user confirms the tournament
+# Get tournaments of the month
+t_list = f.get_tournaments_of_the_month(connection,MONTHS[1])
 
-for i in t_list:
-    print(i)
+for t in t_list:
+    print(t)
 
-# Display the list of tournaments for this month
-index = 1
-for i in t_list:
-    print(f"{index}. {i[5]} ({i[11]})")
-    index += 1
+# start loop
 
+# Check losing condition, find the cheapest option vs player money
 t_fees = []
-for i in t_list:
-    t_fees.append(i[10]*tournament_fee_rate)
+for t in t_list:
+    t['fee'] = t['prize_money'] * TOURNAMENT_FEE_RATE
+    t_fees.append(t['fee'])
 
-if pl_money < min(t_fees) + travel_fee:
-    print("You don't have enough money to continue playing.")  # the game stops and quit
+if player['money'] < min(t_fees) + TRAVEL_FEE:
+    print("Oh no! You don't have enough money to continue playing.")  # the game stops and quit
     print("Game Over.")
     sys.exit()
 
-# user chooses 1 and we assigned the decision to selected_tournament = 1
+f.show_tournaments(t_list) # Display options
+
+# Assign the decision to 'selected_tournament'
 while True:
-    selected_tournament = int(input("Enter your option: "))
-    if selected_tournament in range(len(t_list)+1)[1:]: break
+    user_input = input("Enter your option: ")
+    if user_input.isnumeric():
+        user_input_num = int(user_input)
+
+        if 1 <= user_input_num <= len(t_list):
+            selected_tournament = t_list[user_input_num - 1]
+            break
+        else:
+            print(f"Please enter a valid number of tournament, between 1 and {len(t_list)}")
+    else:
+        print("Select the tournament with a valid number.")
 
 print(selected_tournament)
 
-if pl_money < (t_fees[selected_tournament-1]) + travel_fee:
+if player['money'] < (selected_tournament['fee']) + TRAVEL_FEE:
     print("You don't have enough money to play this tournament. Please choose another from the list.") # we need to send the user back to the tournament selection screen
+
 else:
-    print(f"{t_list[selected_tournament-1][5]} is played in {t_list[selected_tournament-1][7]}, {t_list[selected_tournament-1][11]}. The tournament gives {t_list[selected_tournament-1][4]} points and ${t_list[selected_tournament-1][10]} to the champion. The entrance cost of the tournament is {t_fees[selected_tournament - 1]} and the travel expenses are {travel_fee}.")
+    print(f"{selected_tournament['name']} is played in {selected_tournament['city']}, {selected_tournament['country']}. The tournament gives {selected_tournament['points']} points and ${selected_tournament['prize_money']} to the champion. The entrance cost of the tournament is {selected_tournament['fee']} and the travel expenses are {TRAVEL_FEE}.")
 
 
 if input("Do you want to play the tournament? (Y/N)").upper() == "N":
     print("Ok. Please choose another from the list.") # we need to send the user back to the tournament selection screen
 else:
-    print(f"Great!, flying to {t_list[selected_tournament-1][11]} ...")
+    print(f"Great!, flying to {selected_tournament['country']} ...")
+#     break
 
+current_tournament = selected_tournament
 # The tournament is today! Press enter to start.
 # Brisbane International tournament starting!
 # [play tournament(skill_points, tc_id)] == 0.95, 0.65 SF, 0,43 QF, 0.3 you lost QF
