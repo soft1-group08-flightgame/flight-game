@@ -1,4 +1,5 @@
 # 1. import
+import random
 import sys
 import functions as f
 import config
@@ -20,8 +21,9 @@ connection = mysql.connector.connect(
 
 # 4. variables
 # Starting variables
-heritage = 30000  # to be defined
+heritage = 50000  # to be defined
 skill_points = 20
+winning_points = 1500 # the player must reach this points to win the game
 # Player Features
 
 # Simulate a test player to save time for tests
@@ -32,8 +34,16 @@ player = f.get_player_data(test_player)
 
 # Game State variables
 player['money'] = heritage
-player['money'] = heritage
 player['skill_points'] = skill_points
+player['rank'] = 250
+
+# ranking and points system
+# rank, points
+# 250 ,0
+# 201 ,250
+# 125 ,750
+# 1   , 1500
+# every 6 points you win, you climb 1 ranking position
 
 # game conditions
 TOURNAMENT_FEE_RATE = 0.02  # tournament_fee is calculated as t_prize_money * TOURNAMENT_FEE_RATE
@@ -57,8 +67,8 @@ print(f'\n{MONTHS[-1]} is starting. The following tournaments are coming up, cho
 # Get tournaments of the month
 t_list = f.get_tournaments_of_the_month(connection,MONTHS[1])
 
-for t in t_list:
-    print(t)
+# for t in t_list:
+#     print(t)
 
 # start loop
 while True:
@@ -106,26 +116,79 @@ while True:
         break
 
 current_tournament = selected_tournament
+current_tournament['position'] = 1 # 1 is QF, 2 is SF, 3 is F, 4 is Champion
+current_tournament['reward_perc'] = 0
+
+# ----------- TOURNAMENT GAMEPLAY SECTION - here the player will play the tournament of the month
+
 # The tournament is today! Press enter to start.
-# Brisbane International tournament starting!
+# Brisbane International current_tournament['name'] tournament starting!
 # [play tournament(skill_points, tc_id)] == 0.95, 0.65 SF, 0,43 QF, 0.3 you lost QF
+tournament_result = 0
+def play_tournament(tournament=None, skill_points=None):
+    tournament_result = random.random() * 100
+    print(f"\nTournament result: {tournament_result}")
+    return tournament_result
+tournament_result = play_tournament()
+# Showing tournament final stage
+if tournament_result >= 80:
+    print('Champion')
+    print('100% PM & points')
+    current_tournament['position'] = 'Champion'
+    current_tournament['reward_perc'] = 1
+elif tournament_result >= 60:
+    print('F')
+    print('70% PM & points')
+    current_tournament['position'] = 'Finals'
+    current_tournament['reward_perc'] = 0.7
+elif tournament_result >= 35:
+    print('SF')
+    print('50% PM & points')
+    current_tournament['position'] = 'Semi Finals'
+    current_tournament['reward_perc'] = 0.5
+else:
+    print('QF')
+    print('35% PM & points')
+    current_tournament['position'] = 'Quarter Finals'
+    current_tournament['reward_perc'] = 0.35
+
+
+# example of one tournament game.  tournament_result = 0.61
+#
+# tournament_result >= 0.45
+# print('Game 1, QF... you win!')
+# # ready for the next game? Press enter to start - Input
+# tournament_result >= 0.6
+# print('Game 2, SF... you win!')
+# # ready for the next game? Press enter to start - Input
+# tournament_result >= 0.8
+# print('Game 3, F...  you lost!')
+
+earned_money = current_tournament["prize_money"] * current_tournament["reward_perc"]
+earned_points = current_tournament["points"] * current_tournament["reward_perc"]
+print(f'You have made it to the {current_tournament["position"]}, that rewards you with {earned_points} points and ${earned_money}')
+
+
 # Game 1, QF... you win!    -- QF gives 20% of points and money
+# ready for the next game? Press enter to start
+
 # Game 2, SF... you win!    -- SF gives 50% of points and money
 # Game 3, F...  you win!   -- F gives 70% of points and money
 #  Champion                 -- Champion gives 100% of points and money
 # Congratulations! you are the new champion of Brisbane International [t_name]. Earned points: 250 [earned_points: t_points * position]
+
+
+# ----------- PLAYER STATE UPDATE SECTION - here the attributes of the player will be updated and displayed
+
 # New ranking: 210 [pl_ranking]
 # Money: 129000 [pl_money]
 # Total earned points: 250 [pl_points]
 # You are doing a great job! Keep it up!
 
-# January([months[1]]) is now starting. The following tournaments are coming up, choose one of them:
-# 1.Auckland Open (NZ)   [t_name], ([t_country])
-# 2.Adelaide International (Australia)  [t_name], ([t_country])
-# 3. Open Sud de France (France)    [t_name], ([t_country])
 
 # ... game continues looping every month the same, if you run out of money, you will loose the game. Quit()
 #
+# ----------- GAME CONCLUSION SECTION
 # When 12 months have passed the game is over. It will report the game state.
 # Game state:
 # Ranking:
