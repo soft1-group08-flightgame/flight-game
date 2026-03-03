@@ -47,6 +47,25 @@ def get_tournaments_of_the_month(conn,month):
             clean_list.append(t_dict)
     return clean_list
 
+def add_tournament_fees(tournament_list, tournament_fee_rate):
+    for t in tournament_list:
+        t['fee'] = t['prize_money'] * tournament_fee_rate
+
+def add_tournament_categories_and_difficulty(tournament_list):
+    for t in tournament_list:
+        if t['points'] == 250:
+            t['category'] = 'ATP250'
+            t['diff_coef'] = 1.0
+        elif t['points'] == 500:
+            t['category'] = 'ATP500'
+            t['diff_coef'] = 1.15
+        elif t['points'] == 1000:
+            t['category'] = 'M1000'
+            t['diff_coef'] = 1.25
+        elif t['points'] == 2000:
+            t['category'] = 'GS'
+            t['diff_coef'] = 1.4
+
 def show_tournaments(t_list):
     # Display the list of tournaments
     for index, t in enumerate(t_list, start=1):
