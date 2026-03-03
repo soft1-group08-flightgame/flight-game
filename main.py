@@ -46,9 +46,27 @@ player['rank'] = 250
 # every 6 points you win, you climb 1 ranking position
 
 # game conditions
+
+REWARD_PERCENTAGE = {
+    'Champion' : 1,
+    'Finals' : 0.7,
+    'Semi Finals' : 0.5,
+    'Quarter Finals' : 0.35
+}
+WIN_THRESHOLD = {
+    'Champion' : 80,
+    'Finals' : 60,
+    'Semi Finals' : 35,
+    'Quarter Finals' : 0
+    }
+# POSITIONS = {
+#     'Champion' :        {'min_score' : 80, 'reward_perc' : 1.00},
+#     'Finals' :          {'min_score' : 60, 'reward_perc' : 0.70},
+#     'Semi Finals' :     {'min_score' : 35, 'reward_perc' : 0.50},
+#     'Quarter Finals' :  {'min_score' :  0, 'reward_perc' : 0.35}
+# }
 TOURNAMENT_FEE_RATE = 0.02  # tournament_fee is calculated as t_prize_money * TOURNAMENT_FEE_RATE
 TRAVEL_FEE = 5000   # it is going to be a fix value until further change
-WIN_THRESHOLD = 0.7 # it is going to be a fix value until further change
 
 # context variables
 MONTHS = ("January","February","March","April","May","June","July","August","September","October","November","December")
@@ -65,23 +83,25 @@ print(f'\n{MONTHS[-1]} is starting. The following tournaments are coming up, cho
 
 # TOURNAMENT SELECTION SECTION - it is a loop that breaks when the user confirms the tournament
 # Get tournaments of the month
-t_list = f.get_tournaments_of_the_month(connection,MONTHS[1])
+t_list = f.get_tournaments_of_the_month(connection,MONTHS[0])
 
+f.add_tournament_fees(t_list, TOURNAMENT_FEE_RATE)
+f.add_tournament_categories_and_difficulty(t_list)
 # for t in t_list:
 #     print(t)
 
-# start loop
-while True:
-    # Check losing condition, find the cheapest option vs player money
-    t_fees = []
-    for t in t_list:
-        t['fee'] = t['prize_money'] * TOURNAMENT_FEE_RATE
-        t_fees.append(t['fee'])
+# Check LOSING CONDITION, find the cheapest option vs player money
+t_fees = []
+for t in t_list:
+    t_fees.append(t['fee'])
 
-    if player['money'] < min(t_fees) + TRAVEL_FEE:
-        print("Oh no! You don't have enough money to continue playing.")  # the game stops and quit
-        print("Game Over.")
-        sys.exit()
+if player['money'] < min(t_fees) + TRAVEL_FEE:
+    print("Oh no! You don't have enough money to continue playing.")  # the game stops and quit
+    print("Game Over.")
+    sys.exit()
+
+# Start selection loop
+while True:
 
     f.show_tournaments(t_list) # Display options
 
@@ -99,15 +119,12 @@ while True:
         else:
             print("Select the tournament with a valid number.")
 
-    print(selected_tournament)
-
     if player['money'] < (selected_tournament['fee']) + TRAVEL_FEE:
         print("You don't have enough money to play this tournament. Please choose another from the list.") # we need to send the user back to the tournament selection screen
         continue
 
     else:
         print(f"{selected_tournament['name']} is played in {selected_tournament['city']}, {selected_tournament['country']}. The tournament gives {selected_tournament['points']} points and ${selected_tournament['prize_money']} to the champion. The entrance cost of the tournament is {selected_tournament['fee']} and the travel expenses are {TRAVEL_FEE}.")
-
 
     if input("Do you want to play the tournament? (Y/N) ").upper() == "N":
         print("Ok. Please choose another from the list.") # we need to send the user back to the tournament selection screen
@@ -125,32 +142,33 @@ current_tournament['reward_perc'] = 0
 # Brisbane International current_tournament['name'] tournament starting!
 # [play tournament(skill_points, tc_id)] == 0.95, 0.65 SF, 0,43 QF, 0.3 you lost QF
 tournament_result = 0
-def play_tournament(tournament=None, skill_points=None):
-    tournament_result = random.random() * 100
+def play_tournament(skill_points, tournament=None):
+    tournament_result = random.randint(30,70) + (skill_points * 0.5)
     print(f"\nTournament result: {tournament_result}")
     return tournament_result
-tournament_result = play_tournament()
+
+tournament_result = play_tournament(player['skill_points'])
 # Showing tournament final stage
-if tournament_result >= 80:
+if tournament_result >= WIN_THRESHOLD['Champion']:
     print('Champion')
     print('100% PM & points')
     current_tournament['position'] = 'Champion'
-    current_tournament['reward_perc'] = 1
-elif tournament_result >= 60:
+    current_tournament['reward_perc'] = REWARD_PERCENTAGE['Champion']
+elif tournament_result >=WIN_THRESHOLD['Finals']:
     print('F')
     print('70% PM & points')
     current_tournament['position'] = 'Finals'
-    current_tournament['reward_perc'] = 0.7
-elif tournament_result >= 35:
+    current_tournament['reward_perc'] = REWARD_PERCENTAGE['Finals']
+elif tournament_result >= WIN_THRESHOLD['Semi Finals']:
     print('SF')
     print('50% PM & points')
     current_tournament['position'] = 'Semi Finals'
-    current_tournament['reward_perc'] = 0.5
+    current_tournament['reward_perc'] = REWARD_PERCENTAGE['Semi Finals']
 else:
     print('QF')
     print('35% PM & points')
     current_tournament['position'] = 'Quarter Finals'
-    current_tournament['reward_perc'] = 0.35
+    current_tournament['reward_perc'] = REWARD_PERCENTAGE['Quarter Finals']
 
 
 # example of one tournament game.  tournament_result = 0.61
