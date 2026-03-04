@@ -59,12 +59,12 @@ WIN_THRESHOLD = {
     'Semi Finals' : 35,
     'Quarter Finals' : 0
     }
-# POSITIONS = {
-#     'Champion' :        {'min_score' : 80, 'reward_perc' : 1.00},
-#     'Finals' :          {'min_score' : 60, 'reward_perc' : 0.70},
-#     'Semi Finals' :     {'min_score' : 35, 'reward_perc' : 0.50},
-#     'Quarter Finals' :  {'min_score' :  0, 'reward_perc' : 0.35}
-# }
+POSITIONS = {
+    'Quarter Finals' :  {'min_score' :  0, 'reward_perc' : 0.35},
+    'Semi Finals' :     {'min_score' : 35, 'reward_perc' : 0.50},
+    'Finals' :          {'min_score' : 60, 'reward_perc' : 0.70},
+    'Champion' :        {'min_score' : 80, 'reward_perc' : 1.00}
+}
 TOURNAMENT_FEE_RATE = 0.02  # tournament_fee is calculated as t_prize_money * TOURNAMENT_FEE_RATE
 TRAVEL_FEE = 5000   # it is going to be a fix value until further change
 
@@ -100,7 +100,7 @@ if player['money'] < min(t_fees) + TRAVEL_FEE:
     print("Game Over.")
     sys.exit()
 
-# Start selection loop
+# Start tournament selection loop
 while True:
 
     f.show_tournaments(t_list) # Display options
@@ -126,64 +126,79 @@ while True:
     else:
         print(f"{selected_tournament['name']} is played in {selected_tournament['city']}, {selected_tournament['country']}. The tournament gives {selected_tournament['points']} points and ${selected_tournament['prize_money']} to the champion. The entrance cost of the tournament is {selected_tournament['fee']} and the travel expenses are {TRAVEL_FEE}.")
 
-    if input("Do you want to play the tournament? (Y/N) ").upper() == "N":
-        print("Ok. Please choose another from the list.") # we need to send the user back to the tournament selection screen
-    else:
-        print(f"Great!, flying to {selected_tournament['country']} ...")
+        user_input = input("Do you want to play the tournament? (Y/N) ").upper()
+        while user_input not in ("N", "Y"):
+            user_input = input("Invalid answer. Please answer 'Y' or 'N' ").upper()
+        if user_input == "N":
+            print("Ok. Please choose another from the list.") # we need to send the user back to the tournament selection screen
+        elif user_input == "Y":
+            print(f"Great! flying to {selected_tournament['country']} ...")
         break
 
 current_tournament = selected_tournament
-current_tournament['position'] = 1 # 1 is QF, 2 is SF, 3 is F, 4 is Champion
-current_tournament['reward_perc'] = 0
 
 # ----------- TOURNAMENT GAMEPLAY SECTION - here the player will play the tournament of the month
 
-# The tournament is today! Press enter to start.
-# Brisbane International current_tournament['name'] tournament starting!
-# [play tournament(skill_points, tc_id)] == 0.95, 0.65 SF, 0,43 QF, 0.3 you lost QF
-tournament_result = 0
-def play_tournament(skill_points, tournament=None):
+input("The tournament is today! Press enter to start.")
+print(f"{'-'*80}")
+print(f"|          {current_tournament['name'].upper()}             |")
+print(f"{'-'*80}")
+
+def play_tournament(skill_points, tournament_diff_coef=None):
     tournament_result = random.randint(30,70) + (skill_points * 0.5)
-    print(f"\nTournament result: {tournament_result}")
     return tournament_result
 
 tournament_result = play_tournament(player['skill_points'])
-# Showing tournament final stage
-if tournament_result >= WIN_THRESHOLD['Champion']:
-    print('Champion')
-    print('100% PM & points')
-    current_tournament['position'] = 'Champion'
-    current_tournament['reward_perc'] = REWARD_PERCENTAGE['Champion']
-elif tournament_result >=WIN_THRESHOLD['Finals']:
-    print('F')
-    print('70% PM & points')
-    current_tournament['position'] = 'Finals'
-    current_tournament['reward_perc'] = REWARD_PERCENTAGE['Finals']
-elif tournament_result >= WIN_THRESHOLD['Semi Finals']:
-    print('SF')
-    print('50% PM & points')
-    current_tournament['position'] = 'Semi Finals'
-    current_tournament['reward_perc'] = REWARD_PERCENTAGE['Semi Finals']
-else:
-    print('QF')
-    print('35% PM & points')
-    current_tournament['position'] = 'Quarter Finals'
-    current_tournament['reward_perc'] = REWARD_PERCENTAGE['Quarter Finals']
+# tournament_result = 100
+print(f"\nTournament result: {tournament_result}")
 
+# Get tournament position
+# for position, data in reversed(POSITIONS.items()):
+#     if tournament_result >= data['min_score']:
+#         print(f"{position}")
+#         print(f"{data['reward_perc']} of PM & points")
+#         current_tournament['position'] = position
+#         current_tournament['reward_perc'] = data['reward_perc']
+#         break
 
-# example of one tournament game.  tournament_result = 0.61
-#
-# tournament_result >= 0.45
-# print('Game 1, QF... you win!')
-# # ready for the next game? Press enter to start - Input
-# tournament_result >= 0.6
-# print('Game 2, SF... you win!')
-# # ready for the next game? Press enter to start - Input
-# tournament_result >= 0.8
-# print('Game 3, F...  you lost!')
+def get_tournament_position(tournament_res: int, asc_positions: dict):
+    for position, data in reversed(asc_positions.items()):
+        if tournament_res >= data['min_score']:
+            return position, data['reward_perc']
 
+# print("get_tournament_position(tournament_result, reversed(POSITIONS))")
+# print(get_tournament_position(tournament_result, POSITIONS))
+current_tournament['position'], current_tournament['reward_perc'] = get_tournament_position(tournament_result, POSITIONS)
+
+# Get tournament history (using tournament position)
+t_rounds = list(POSITIONS.keys())
+history = []
+for round in t_rounds:
+    if round == current_tournament['position'] and current_tournament['position'] != 'Champion':
+        history.append((round, 'Lost'))
+        # print(f'{round}... you lost!')
+        break
+    history.append((round, 'Win'))
+    # print(f'{round}... you win!')
+    # if round == current_tournament['position']:
+    #     history.append((round, 'Champion'))
+        # print(f'You won the tournament, congratulations {round}!!!')
+
+# print(history)
+
+# User interface - displays the progress of the tournament
+for i, (round, result) in enumerate(history):
+    if result == 'Win':
+        if round != 'Champion':
+            print(f"Playing {round}... you {result}!")
+            print(f"Current points: . Current money: ")
+            if i < len(history) - 1:
+                input("--> Press enter to play the next round.")
+        else:
+            print(f'You won the tournament, congratulations {round}!!!')
 earned_money = current_tournament["prize_money"] * current_tournament["reward_perc"]
 earned_points = current_tournament["points"] * current_tournament["reward_perc"]
+
 print(f'You have made it to the {current_tournament["position"]}, that rewards you with {earned_points} points and ${earned_money}')
 
 
