@@ -73,11 +73,13 @@ def show_tournaments(t_list):
 
 def print_game_intro(user_name, nation, age, heritage):
     # Intro of the game
-    print("---------TENNIS PRO 2026---------")
-    print("Complete a full tennis season and finish  ranked number one in the world ranking")
+    print("=" * 40)
+    print("{:^40}".format("🎾TENNIS PRO 2026🎾"))
+    print("=" * 40, end="\n\n")
+    print("🫵Complete a full tennis season and finish  ranked number one in the world ranking",end="\n\n")
 
-    print("Winning tournaments grants ranking points and prize money. The accumulated points determine the player's ranking position")
-
+    print("Winning tournaments grants ranking points and prize money. The accumulated points determine the player's ranking position", end="\n\n")
+    print("=" * 40, end="\n\n")
     print(f"{user_name} was born in {nation} {age} years ago into a very poor family.\n"
     f"He was the youngest of six siblings.\n"
     f"Since childhood, he had to work in a coal mine to help his family survive.\n"
