@@ -262,5 +262,5 @@ print(f"Total Money: ${player['money']}")
 if player['rank'] == 1:
     print("CONGRATULATIONS! You are the World Number 1!")
 else:
-    print(f"You finished the season at Rank {player['rank']}. Your family is proud of you.")
+    print(f"You finished the season at Rank {player['rank']}. Your family is proud of you❤️.")
 
