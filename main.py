@@ -185,15 +185,8 @@ for month in MONTHS:
     for round in t_rounds:
         if round == current_tournament['position'] and current_tournament['position'] != 'Champion':
             history.append((round, 'Lost'))
-            # print(f'{round}... you lost!')
             break
         history.append((round, 'Win'))
-        # print(f'{round}... you win!')
-        # if round == current_tournament['position']:
-        #     history.append((round, 'Champion'))
-            # print(f'You won the tournament, congratulations {round}!!!')
-
-    # print(history)
 
     # User interface - displays the progress of the tournament
     for i, (round, result) in enumerate(history):
@@ -205,20 +198,11 @@ for month in MONTHS:
                     input("--> Press enter to play the next round.")
             else:
                 print(f'You won the tournament, congratulations {round}!!!')
+        else:
+            print(f"Playing {round}... you {result}!")
+
     earned_money = current_tournament["prize_money"] * current_tournament["reward_perc"]
     earned_points = current_tournament["points"] * current_tournament["reward_perc"]
-
-    print(f'You have made it to the {current_tournament["position"]}, that rewards you with {earned_points} points and ${earned_money}')
-
-
-# Game 1, QF... you win!    -- QF gives 20% of points and money
-# ready for the next game? Press enter to start
-
-# Game 2, SF... you win!    -- SF gives 50% of points and money
-# Game 3, F...  you win!   -- F gives 70% of points and money
-#  Champion                 -- Champion gives 100% of points and money
-# Congratulations! you are the new champion of Brisbane International [t_name]. Earned points: 250 [earned_points: t_points * position]
-
 
 # ----------- PLAYER STATE UPDATE SECTION - here the attributes of the player will be updated and displayed
 
