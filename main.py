@@ -1,233 +1,199 @@
-# 1. import
-import random
-import sys
-import functions as f
-import config
-import mysql.connector
+# 1. IMPORT SECTION
+# Bringing in external modules to extend Python's functionality
+import random  # Used to generate random match results
+import sys  # Used for sys.exit() to close the game on "Game Over"
+import functions as f  # Importing your custom helper functions (database calls, UI, etc.)
+import config  # Importing sensitive database credentials
+import mysql.connector  # Driver to connect and interact with your MySQL database
 
-# 2. connection
+# --- COLORS & EMOJIS FOR UI ---
+# These are ANSI escape codes used to change terminal text colors for better UX
+G = "\033[92m"  # Green: Successful events or earning money
+R = "\033[91m"  # Red: Negative events, costs, or losing matches
+C = "\033[96m"  # Cyan: Headers and section titles
+B = "\033[1m"  # Bold: For emphasizing important text
+W = "\033[0m"  # Reset: Reverts text back to the standard white color
 
+# 2. DATABASE CONNECTION
+# Establishing a live link to the MySQL server using settings from config.py
 connection = mysql.connector.connect(
-    host = config.HOST,
-    port = config.PORT,
-    database = config.DB,
-    user = config.USER,
-    password = config.PASS,
-    autocommit = True
+    host=config.HOST,
+    port=config.PORT,
+    database=config.DB,
+    user=config.USER,
+    password=config.PASS,
+    autocommit=True  # Ensures every SQL change is saved instantly
 )
 
-# 3. functions
-
-# 4. variables
-# Starting variables
-heritage = 50000  # to be defined
-skill_points = 20
-# winning_points = 4500 # the player must reach this points to win the game
-# Player Features
+# 4. INITIAL VARIABLES & GAME STATE
+heritage = 50000  # The starting bank balance for the player
+skill_points = 20  # Initial player strength; used in the match result formula
+player = f.get_player_data()  # Triggers the player creation process/inputs
 
 # Simulate a test player to save time for tests - uncomment for testing
 # test_player = {'user_name': 'Rodri','nation': 'Argentina','age': 20}
 # player = f.get_player_data(test_player) # Create test player
 
-# Create player - comment this for testing
-player = f.get_player_data()
-
-# Game State variables
+# Adding gameplay-specific keys to the player dictionary
 player['money'] = heritage
 player['skill_points'] = skill_points
-player['rank'] = 250
+player['rank'] = 250  # Starting professional ranking
+player['total_points'] = 0
 
-# game conditions
-
+# GAME CONDITIONS & REWARDS
+# POSITIONS dictionary defines the "Score" needed to reach a certain round and the prize percentage
 POSITIONS = {
-    'Quarter Finals' :  {'min_score' :  0, 'reward_perc' : 0.35},
-    'Semi Finals' :     {'min_score' : 35, 'reward_perc' : 0.50},
-    'Finals' :          {'min_score' : 60, 'reward_perc' : 0.70},
-    'Champion' :        {'min_score' : 80, 'reward_perc' : 1.00}
+    'Quarter Finals': {'min_score': 0, 'reward_perc': 0.35},
+    'Semi Finals': {'min_score': 35, 'reward_perc': 0.50},
+    'Finals': {'min_score': 60, 'reward_perc': 0.70},
+    'Champion': {'min_score': 80, 'reward_perc': 1.00}
 }
-TOURNAMENT_FEE_RATE = 0.02  # tournament_fee is calculated as t_prize_money * TOURNAMENT_FEE_RATE
-TRAVEL_FEE = 5000   # it is going to be a fix value until further change
+TOURNAMENT_FEE_RATE = 0.02  # Logic: Fee is 2% of the total prize money
+TRAVEL_FEE = 5000  # Fixed cost to fly to any tournament location
 
-# context variables
-MONTHS = ("January","February","March","April","May","June","July","August","September","October","November","December")
+# CONTEXT VARIABLES
+MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August",
+          "September", "October", "November", "December")
 
-# 5. game
-
-# Introduction to the game
-
-# player features have been requested in get_player_data() section
+# 5. GAME START
+# Displaying the "Welcome" screen with the player's initial stats
 f.print_game_intro(player['user_name'], player['nation'], player['age'], heritage)
 
-# Game starts...
-
-
-# TOURNAMENT SELECTION SECTION - it is a loop that breaks when the user confirms the tournament
-# Get tournaments of the month
-
-
-
-# --- 2. THE SEASON LOOP [NEW] ---
-# This loop connects everything. It runs 12 times (once per month).
+# --- 2. THE MAIN SEASON LOOP ---
+# The heart of the game: This iterates through all 12 months of the year
 for month in MONTHS:
-    print(f"\n>>> CURRENT MONTH: {month.upper()} is starting. The following tournaments are coming up, choose one of them:'<<<")
-    t_list = f.get_tournaments_of_the_month(connection,month)
+    print(f"\n{B}{C}📅 --- {month.upper()} ---{W}")
 
+    # FETCH DATA: Querying the database for tournaments specifically in this month
+    t_list = f.get_tournaments_of_the_month(connection, month)
+
+    # DATA ENRICHMENT: Adding fees and difficulty levels to the tournament list
     f.add_tournament_fees(t_list, TOURNAMENT_FEE_RATE)
     f.add_tournament_categories_and_difficulty(t_list)
-    # for t in t_list:
-    #     print(t)
 
-    # Check LOSING CONDITION, find the cheapest option vs player money
+    # BANKRUPTCY CHECK (Losing Condition)
+    # If the player has less money than the cheapest tournament + travel, the game ends
     t_fees = []
     for t in t_list:
         t_fees.append(t['fee'])
 
     if player['money'] < min(t_fees) + TRAVEL_FEE:
-        print("Oh no! You don't have enough money to continue playing.")  # the game stops and quit
-        print("Game Over.")
-        sys.exit()
+        print(f"\n{R}❌ Oh no! You don't have enough money to continue playing.{W}")
+        print(f"{B}Game Over.{W}")
+        sys.exit()  # Ends the script execution
 
-    # Start tournament selection loop
+    # TOURNAMENT SELECTION LOOP
+    # This keeps running until the player makes a valid, affordable choice and confirms it
     while True:
+        f.show_tournaments(t_list)  # Displays available tournaments to the user
 
-        f.show_tournaments(t_list) # Display options
-
-        # Assign the decision to 'selected_tournament'
+        # INPUT VALIDATION: Ensuring the user enters a number that exists in the list
         while True:
-            user_input = input("Enter your option: ")
+            user_input = input(f"{B}🎾 Select tournament #: {W}")
             if user_input.isnumeric():
                 user_input_num = int(user_input)
-
                 if 1 <= user_input_num <= len(t_list):
                     selected_tournament = t_list[user_input_num - 1]
                     break
                 else:
-                    print(f"Please enter a valid number of tournament, between 1 and {len(t_list)}")
+                    print(f"{R}Please enter a number between 1 and {len(t_list)}{W}")
             else:
-                print("Select the tournament with a valid number.")
+                print(f"{R}Error: Please enter a numeric value.{W}")
 
+        # AFFORDABILITY CHECK
         if player['money'] < (selected_tournament['fee']) + TRAVEL_FEE:
-            print("You don't have enough money to play this tournament 🙃. Please choose another from the list thanks.") # we need to send the user back to the tournament selection screen
-            continue
+            print(f"{R}💸 Not enough money. Please pick a cheaper tournament.{W}")
+            continue  # Restarts the selection loop
 
         else:
-            print(f"{selected_tournament['name']} is played in {selected_tournament['city']}, {selected_tournament['country']}. The tournament gives {selected_tournament['points']} points and ${selected_tournament['prize_money']} to the champion. The entrance cost of the tournament is {selected_tournament['fee']} and the travel expenses are {TRAVEL_FEE}.")
+            # Displaying cost summary to the user
+            print(f"\n{B}{selected_tournament['name']} ({selected_tournament['category']}){W} in {selected_tournament['city']}, {selected_tournament['country']}.")
+            print(f"🏆 Points: {C}{selected_tournament['points']}{W}")
+            print(f"💰 Champion Prize: {G}${selected_tournament['prize_money']:.2f}{W}")
+            print(f"💳 Total Cost: {R}-${selected_tournament['fee'] + TRAVEL_FEE:.2f}{W} (Fee + ✈️ Travel)")
 
-            user_input = input("Do you want to play the tournament? (Y/N) ").upper()
+            # CONFIRMATION: Allowing the user to change their mind before spending money
+            print(f"👛 {B}YOUR WALLET:{W} {G}${player['money']:.2f}{W}")
+            user_input = input(f"\n{B}Do you want to play? (Y/N): {W}").upper()
             while user_input not in ("N", "Y"):
-                user_input = input("Invalid answer. Please answer 'Y' or 'N' ").upper()
+                user_input = input(f"{R}Invalid input. Enter 'Y' or 'N': {W}").upper()
+
             if user_input == "N":
-                print("Ok. Please choose another from the list.")
-                continue# we need to send the user back to the tournament selection screen
+                print("Returning to the list...")
+                continue
             elif user_input == "Y":
-                print(f"Great! flying to {selected_tournament['country']} ...")
-                player['money'] -= (selected_tournament['fee'] + TRAVEL_FEE) # [NEW] This subtracts the money!
-                break# [NEW] Move the break HERE so the loop only ends on a "Y"
+                print(f"{G}Great! Flying to {selected_tournament['country']}...{W}")
+                player['money'] -= (selected_tournament['fee'] + TRAVEL_FEE)  # Deduction
+                break  # Exit the selection loop to start the match
 
     current_tournament = selected_tournament
 
-    # ----------- TOURNAMENT GAMEPLAY SECTION - here the player will play the tournament of the month
+    # ----------- TOURNAMENT GAMEPLAY SECTION -----------
+    input(f"\n{B}Match day! Press enter to start...{W}")
 
-    input("The tournament is today! Press enter to start.")
-    print(f" {'-'*20}{'-' * len(current_tournament['name'].upper())}")
-    print(f"|          {current_tournament['name'].upper()}          |")
-    print(f" {'-'*20}{'-' * len(current_tournament['name'].upper())}")
+    # TOURNAMENT BOX: Visual decoration for the tournament name
+    print(f"\n {C}{'-' * 20}{'-' * len(current_tournament['name'].upper())}{W}")
+    print(f"{B}|          {current_tournament['name'].upper()}          |{W}")
+    print(f" {C}{'-' * 20}{'-' * len(current_tournament['name'].upper())}{W}")
 
-    def play_tournament(skill_points, tournament_diff_coef):
-        base_result = (random.randint(30,70) + (skill_points * 0.5))
-        tournament_result = base_result / tournament_diff_coef
-        return tournament_result
+    # SIMULATION LOGIC: Calculating how well the player did based on skill and tournament difficulty
+    tournament_result = f.play_tournament(player['skill_points'], current_tournament['diff_coef'])
 
-    tournament_result = play_tournament(player['skill_points'], current_tournament['diff_coef'])
-    # tournament_result = 100
-    print(f"\nTournament result: {tournament_result}")
 
-    # Get tournament position
-    # for position, data in reversed(POSITIONS.items()):
-    #     if tournament_result >= data['min_score']:
-    #         print(f"{position}")
-    #         print(f"{data['reward_perc']} of PM & points")
-    #         current_tournament['position'] = position
-    #         current_tournament['reward_perc'] = data['reward_perc']
-    #         break
+    # POSITION CALCULATION: Checking where the result fits in the POSITIONS dictionary
+    current_tournament['position'], current_tournament['reward_perc'] = f.get_tournament_position(tournament_result, POSITIONS)
 
-    def get_tournament_position(tournament_res: int, asc_positions: dict):
-        for position, data in reversed(asc_positions.items()):
-            if tournament_res >= data['min_score']:
-                return position, data['reward_perc']
-
-    # print("get_tournament_position(tournament_result, reversed(POSITIONS))")
-    # print(get_tournament_position(tournament_result, POSITIONS))
-    current_tournament['position'], current_tournament['reward_perc'] = get_tournament_position(tournament_result, POSITIONS)
-
-    # Get tournament history (using tournament position)
+    # TOURNAMENT HISTORY: Creating a chronological list of rounds played (Wins vs Loss)
     t_rounds = list(POSITIONS.keys())
     history = []
     for round in t_rounds:
         if round == current_tournament['position'] and current_tournament['position'] != 'Champion':
-            history.append((round, 'Lost'))
-            break
-        history.append((round, 'Win'))
+            history.append((round, f'{R}Lost ❌{W}'))
+            break  # Stop once the loss is recorded
+        history.append((round, f'{G}Win! ✅{W}'))
 
-    # User interface - displays the progress of the tournament
+    # USER INTERFACE: Animating the tournament progress
     for i, (round, result) in enumerate(history):
-        if result == 'Win':
-            if round != 'Champion':
-                print(f"Playing {round}... you {result}!")
-                print(f"Current points: . Current money: ")
-                if i < len(history) - 1:
-                    input("--> Press enter to play the next round.")
-            else:
-                print(f'You won the tournament, congratulations {round}!!!')
-        else:
-            print(f"Playing {round}... you {result}!")
+        print(f"🔹 Playing {round}... you {result}!")
+        if 'Win' in result:
+            if round == 'Champion':
+                print(f"{G}{B}🏆 CONGRATULATIONS! You won the tournament!{W}")
+            elif i < len(history) - 1:
+                input(f"{C}   --> Next Round Ready. Press enter...{W}")
 
+    # CALCULATE REWARDS: Points and money earned are a percentage of the max prize
     earned_money = current_tournament["prize_money"] * current_tournament["reward_perc"]
     earned_points = current_tournament["points"] * current_tournament["reward_perc"]
 
-# ----------- PLAYER STATE UPDATE SECTION - here the attributes of the player will be updated and displayed
-
-# New ranking: 210 [pl_ranking]
-# Money: 129000 [pl_money]
-# Total earned points: 250 [pl_points]
-# You are doing a great job! Keep it up!
-
-    # [NEW] CALCULATE WINNINGS
-    earned_money = current_tournament["prize_money"] * current_tournament["reward_perc"]
-    earned_points = current_tournament["points"] * current_tournament["reward_perc"]
-
-    # [NEW] UPDATE PLAYER STATE
+    # ----------- PLAYER STATE UPDATE SECTION -----------
+    # Persisting the monthly winnings into the player's profile
     player['money'] += earned_money
-    if 'total_points' not in player: player['total_points'] = 0
     player['total_points'] += earned_points
 
-    # [NEW] RECALCULATE RANKING (6 points = 1 rank climb)
-    # Starting rank 250. Every 20 points subtracts 1 from the rank.
+    # RANKING CALCULATION: (Every 20 points earned improves rank by 1 spot)
     player['rank'] = max(1, 250 - int(player['total_points'] // 20))
 
-    print(f"\nYou finished at {current_tournament['position']}!")
-    print(f"Earned: ${earned_money} | Total Money: ${player['money']}")
-    print(f"Current Rank: {player['rank']} (Total Points: {player['total_points']})")
+    # MONTHLY SUMMARY UI
+    print(f"\n{B}{C}📊 MONTHLY SUMMARY{W}")
+    print(f"Final Position: {current_tournament['position']}")
+    print(f"Earnings: {G}+${earned_money:.2f}{W} 💰 | New Balance: ${player['money']:.2f}")
+    print(f"Updated Rank: {B}#{player['rank']}{W} 📈 (Points: {player['total_points']:.2f})")
+
+    # LOOP CONTROL: Choosing the right prompt based on whether it is the last month
     if month != 'December':
-        input("\nPress Enter to proceed to the next month...")
+        input(f"\nPress Enter to proceed to the next month...")
     else:
-        input("\nPress Enter to continue...")
+        input(f"\nSeason Complete! Press Enter for final results...")
 
-
-# ----------- GAME CONCLUSION SECTION
-# When 12 months have passed the game is over. It will report the game state.
-# Game state:
-# Ranking:
-# Earned money:
-# Total earned points:
-# If final ranking is 1, player wins the game. If final ranking is not 1 but money is enough to keep playing and save the player's family, the program celebrates it, and thanks for helping the tennis player to achieve the dream.
 # ----------- GAME CONCLUSION SECTION -----------
-print("\n" + "="*40)
-print("SEASON OVER")
-print(f"Final Ranking: {player['rank']}")
-print(f"Total Money: ${player['money']}")
-if player['rank'] == 1:
-    print("CONGRATULATIONS! You are the World Number 1!")
-else:
-    print(f"You finished the season at Rank {player['rank']}. Your family is proud of you❤️.")
+# Triggered once the 12-month loop finishes
+print(f"\n{B}{C}{'=' * 40}{W}")
+print(f"{B}🏁 SEASON OVER - FINAL RESULTS{W}")
+print(f"Final Ranking: {B}#{player['rank']}{W}")
+print(f"Final Wealth: {G}${player['money']:.2f}{W}")
 
+# VICTORY CONDITION: If the player reached #1
+if player['rank'] == 1:
+    print(f"{G}{B}👑 CONGRATULATIONS! You are the World Number 1! 👑{W}")
+else:
+    print(f"The season is done. Your family is proud of you! ❤️")
