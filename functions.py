@@ -1,3 +1,4 @@
+import random
 # get airports for each tournament (large_airports that match the country/city)
 
 # Queries de Database using the db connection and the SQL query as parameters
@@ -69,6 +70,17 @@ def show_tournaments(t_list):
     # Display the list of tournaments
     for index, t in enumerate(t_list, start=1):
         print(f"{index}. {t['name']} ({t['iso_country']})")
+
+def play_tournament(skill_points, tournament_diff_coef):
+    # Result = (Random Luck + Skill) adjusted by Difficulty Coefficient
+    base_result = (random.randint(30, 70) + (skill_points * 0.5))
+    tournament_result = base_result / tournament_diff_coef
+    return tournament_result
+
+def get_tournament_position(tournament_res: int, asc_positions: dict):
+    for position, data in reversed(asc_positions.items()):
+        if tournament_res >= data['min_score']:
+            return position, data['reward_perc']
 
 def print_game_intro(user_name, nation, age, heritage):
     # Intro of the game
