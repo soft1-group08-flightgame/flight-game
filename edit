@@ -137,10 +137,12 @@ for month in MONTHS:
             while user_input not in ("N", "Y"):
                 user_input = input("Invalid answer. Please answer 'Y' or 'N' ").upper()
             if user_input == "N":
-                print("Ok. Please choose another from the list.") # we need to send the user back to the tournament selection screen
+                print("Ok. Please choose another from the list.")
+                continue# we need to send the user back to the tournament selection screen
             elif user_input == "Y":
                 print(f"Great! flying to {selected_tournament['country']} ...")
-            break
+                player['money'] -= (selected_tournament['fee'] + TRAVEL_FEE) # [NEW] This subtracts the money!
+                break# [NEW] Move the break HERE so the loop only ends on a "Y"
 
     current_tournament = selected_tournament
 
