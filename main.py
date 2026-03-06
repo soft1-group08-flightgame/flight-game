@@ -1,21 +1,13 @@
 # 1. IMPORT SECTION
 # Bringing in external modules to extend Python's functionality
-import random  # Used to generate random match results
 import sys  # Used for sys.exit() to close the game on "Game Over"
 import functions as f  # Importing your custom helper functions (database calls, UI, etc.)
 import config  # Importing sensitive database credentials
-import mysql.connector  # Driver to connect and interact with your MySQL database
-
-# --- COLORS & EMOJIS FOR UI ---
-# These are ANSI escape codes used to change terminal text colors for better UX
-G = "\033[92m"  # Green: Successful events or earning money
-R = "\033[91m"  # Red: Negative events, costs, or losing matches
-C = "\033[96m"  # Cyan: Headers and section titles
-B = "\033[1m"  # Bold: For emphasizing important text
-W = "\033[0m"  # Reset: Reverts text back to the standard white color
+import mysql.connector  # Driver to connect and interact with your MariaDB database
+from ui_colors import G,R,C,B,W # These are ANSI escape codes used to change terminal text colors for better UX
 
 # 2. DATABASE CONNECTION
-# Establishing a live link to the MySQL server using settings from config.py
+# Establishing a live link to the MariaDB server using settings from config.py
 connection = mysql.connector.connect(
     host=config.HOST,
     port=config.PORT,
