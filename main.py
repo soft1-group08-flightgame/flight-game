@@ -5,7 +5,6 @@ import functions as f
 import config
 import mysql.connector
 
-
 # 2. connection
 
 connection = mysql.connector.connect(
@@ -23,42 +22,23 @@ connection = mysql.connector.connect(
 # Starting variables
 heritage = 50000  # to be defined
 skill_points = 20
-winning_points = 1500 # the player must reach this points to win the game
+# winning_points = 4500 # the player must reach this points to win the game
 # Player Features
 
-# Simulate a test player to save time for tests
-test_player = {'user_name': 'Rodri','nation': 'Argentina','age': 20}
+# Simulate a test player to save time for tests - uncomment for testing
+# test_player = {'user_name': 'Rodri','nation': 'Argentina','age': 20}
+# player = f.get_player_data(test_player) # Create test player
 
-# Create player
-player = f.get_player_data(test_player)
+# Create player - comment this for testing
+player = f.get_player_data()
 
 # Game State variables
 player['money'] = heritage
 player['skill_points'] = skill_points
 player['rank'] = 250
 
-# ranking and points system
-# rank, points
-# 250 ,0
-# 201 ,250
-# 125 ,750
-# 1   , 1500
-# every 6 points you win, you climb 1 ranking position
-
 # game conditions
 
-REWARD_PERCENTAGE = {
-    'Champion' : 1,
-    'Finals' : 0.7,
-    'Semi Finals' : 0.5,
-    'Quarter Finals' : 0.35
-}
-WIN_THRESHOLD = {
-    'Champion' : 80,
-    'Finals' : 60,
-    'Semi Finals' : 35,
-    'Quarter Finals' : 0
-    }
 POSITIONS = {
     'Quarter Finals' :  {'min_score' :  0, 'reward_perc' : 0.35},
     'Semi Finals' :     {'min_score' : 35, 'reward_perc' : 0.50},
@@ -149,15 +129,16 @@ for month in MONTHS:
     # ----------- TOURNAMENT GAMEPLAY SECTION - here the player will play the tournament of the month
 
     input("The tournament is today! Press enter to start.")
-    print(f"{'-'*80}")
-    print(f"|          {current_tournament['name'].upper()}             |")
-    print(f"{'-'*80}")
+    print(f" {'-'*20}{'-' * len(current_tournament['name'].upper())}")
+    print(f"|          {current_tournament['name'].upper()}          |")
+    print(f" {'-'*20}{'-' * len(current_tournament['name'].upper())}")
 
-    def play_tournament(skill_points, tournament_diff_coef=None):
-        tournament_result = random.randint(30,70) + (skill_points * 0.5)
+    def play_tournament(skill_points, tournament_diff_coef):
+        base_result = (random.randint(30,70) + (skill_points * 0.5))
+        tournament_result = base_result / tournament_diff_coef
         return tournament_result
 
-    tournament_result = play_tournament(player['skill_points'])
+    tournament_result = play_tournament(player['skill_points'], current_tournament['diff_coef'])
     # tournament_result = 100
     print(f"\nTournament result: {tournament_result}")
 
@@ -221,16 +202,18 @@ for month in MONTHS:
     player['total_points'] += earned_points
 
     # [NEW] RECALCULATE RANKING (6 points = 1 rank climb)
-    # Starting rank 250. Every 6 points subtracts 1 from the rank.
-    player['rank'] = max(1, 250 - int(player['total_points'] // 6))
+    # Starting rank 250. Every 20 points subtracts 1 from the rank.
+    player['rank'] = max(1, 250 - int(player['total_points'] // 20))
 
     print(f"\nYou finished at {current_tournament['position']}!")
     print(f"Earned: ${earned_money} | Total Money: ${player['money']}")
     print(f"Current Rank: {player['rank']} (Total Points: {player['total_points']})")
-    input("\nPress Enter to proceed to the next month...")
+    if month != 'December':
+        input("\nPress Enter to proceed to the next month...")
+    else:
+        input("\nPress Enter to continue...")
 
-# ... game continues looping every month the same, if you run out of money, you will loose the game. Quit()
-#
+
 # ----------- GAME CONCLUSION SECTION
 # When 12 months have passed the game is over. It will report the game state.
 # Game state:

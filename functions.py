@@ -1,5 +1,4 @@
 # get airports for each tournament (large_airports that match the country/city)
-# play_tournament(skill_points, tc_id)
 
 # Queries de Database using the db connection and the SQL query as parameters
 def run_query(conn, query, params=None):
@@ -11,9 +10,9 @@ def run_query(conn, query, params=None):
 
 def get_player_data(test_vals=None):
     data = test_vals or {
-    'user_name': input("Enter your name:"),
-    'nation': input("Enter your Nation"),
-    'age': int(input("Enter your age"))
+    'user_name': input("Enter your name: "),
+    'nation': input("Enter your Nation: "),
+    'age': int(input("Enter your age: "))
     }
     return data
 
@@ -49,7 +48,7 @@ def get_tournaments_of_the_month(conn,month):
 
 def add_tournament_fees(tournament_list, tournament_fee_rate):
     for t in tournament_list:
-        t['fee'] = t['prize_money'] * tournament_fee_rate
+        t['fee'] = round(t['prize_money'] * tournament_fee_rate,2)
 
 def add_tournament_categories_and_difficulty(tournament_list):
     for t in tournament_list:
