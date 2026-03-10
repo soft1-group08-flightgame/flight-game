@@ -14,7 +14,8 @@ connection = mysql.connector.connect(
     database=config.DB,
     user=config.USER,
     password=config.PASS,
-    autocommit=True  # Ensures every SQL change is saved instantly
+    autocommit=True,  # Ensures every SQL change is saved instantly
+    auth_plugin=config.AUTH_PLUGIN
 )
 
 # 4. INITIAL VARIABLES & GAME STATE
